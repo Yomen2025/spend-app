@@ -17,22 +17,43 @@ export default function ExpenseForm({ onAddExpense }) {
   );
   const [error, setError] = useState("");
 
+  const calculateSplitAmounts = (totalAmount, checkedNames) => {
+  if (checkedNames.length === 0) return {};
+
+  const rawSplit = totalAmount / checkedNames.length;
+  const split = Math.round(rawSplit * 100) / 100;
+  const amounts = {};
+
+  checkedNames.forEach((name) => {
+    amounts[name] = split;
+  });
+
+  // adjust the last person to account for rounding difference
+  const sum = Object.values(amounts).reduce((a, b) => a + b, 0);
+  const difference = Math.round((totalAmount - sum) * 100) / 100;
+  amounts[checkedNames[checkedNames.length - 1]] += difference;
+
+  return amounts;
+};
+
   // Auto-calculate split amounts when amount or checkboxes change
-  useEffect(() => {
-    const checkedNames = Object.keys(splitWith).filter(
-      (name) => splitWith[name].checked
-    );
-    if (checkedNames.length > 0 && amount) {
-      const splitAmount = (Number(amount) / checkedNames.length).toFixed(2);
-      setSplitWith((prev) => {
-        const updated = { ...prev };
-        checkedNames.forEach((name) => {
-          updated[name].amount = splitAmount;
-        });
-        return updated;
+useEffect(() => {
+  const checkedNames = Object.keys(splitWith).filter(
+    (name) => splitWith[name].checked
+  );
+
+  if (checkedNames.length > 0 && amount) {
+    const newSplits = calculateSplitAmounts(Number(amount), checkedNames);
+
+    setSplitWith((prev) => {
+      const updated = { ...prev };
+      checkedNames.forEach((name) => {
+        updated[name].amount = newSplits[name].toFixed(2);
       });
-    }
-  }, [amount, splitWith]);
+      return updated;
+    });
+  }
+}, [amount, splitWith]);
 
   // Restrict amount input to 2 decimals
   const handleAmountChange = (e) => {
