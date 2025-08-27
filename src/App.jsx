@@ -1,21 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ExpenseForm from "./components/ExpenseForm";
 import ExpenseList from "./components/ExpenseList";
 import Summary from "./components/Summary.jsx";
+import { supabase } from "./supabaseClient";
 
 function App() {
   const [activeTab, setActiveTab] = useState("summary");
   const [expenses, setExpenses] = useState([]); // ✅ always an array
- 
 
-  const addExpenseHandler = (expense) => {
-    setExpenses((prevExpenses) => [
-      ...prevExpenses,
-      { ...expense, id: Math.random().toString() },
-    ]);
+  // Fetch expenses from Supabase
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .order("date", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching expenses:", error);
+      } else {
+        setExpenses(data);
+      }
+    };
+
+    fetchExpenses();
+  }, []);
+
+  const addExpenseHandler = async (expense) => {
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from("expenses")
+      .insert([expense])
+      .select(); // <-- this ensures the inserted row is returned
+
+    if (error) {
+      console.error("Error adding expense:", error);
+    } else if (data && data.length > 0) {
+      // Update local state safely
+      setExpenses((prev) => [...prev, data[0]]);
+    }
   };
 
-   return (
+  return (
     <div className="container my-4">
       <h1 className="text-center mb-4 text-primary">
         <i className="bi bi-wallet2 me-2"></i>
@@ -42,7 +68,7 @@ function App() {
         </li>
         <li className="nav-item">
           <button
-            className={`nav-link ${activeTab === "list" && <ExpenseList expenses={expenses} />}`}
+            className={`nav-link ${activeTab === "list" ? "active" : ""}`}
             onClick={() => setActiveTab("list")}
           >
             List Expenses
@@ -53,7 +79,7 @@ function App() {
       {/* Tab Content */}
       {activeTab === "summary" && <Summary expenses={expenses} />}
       {activeTab === "add" && <ExpenseForm onAddExpense={addExpenseHandler} />}
-      {activeTab === "list" && <ExpenseList items={expenses} />}
+      {activeTab === "list" && <ExpenseList expenses={expenses} />}
     </div>
   );
 }

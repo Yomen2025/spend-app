@@ -36,7 +36,6 @@ export default function ExpenseForm({ onAddExpense }) {
   return amounts;
 };
 
-  // Auto-calculate split amounts when amount or checkboxes change
 useEffect(() => {
   const checkedNames = Object.keys(splitWith).filter(
     (name) => splitWith[name].checked
@@ -53,7 +52,9 @@ useEffect(() => {
       return updated;
     });
   }
-}, [amount, splitWith]);
+  // ✅ only recalc when amount or checkedNames change
+}, [amount, Object.values(splitWith).map(s => s.checked).join(",")]);
+
 
   // Restrict amount input to 2 decimals
   const handleAmountChange = (e) => {
