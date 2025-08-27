@@ -16,6 +16,7 @@ export default function ExpenseForm({ onAddExpense }) {
     }, {})
   );
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const calculateSplitAmounts = (totalAmount, checkedNames) => {
   if (checkedNames.length === 0) return {};
@@ -81,19 +82,20 @@ useEffect(() => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // Validate split total
-    const totalSplit = Object.values(splitWith).reduce(
-      (sum, s) => sum + (Number(s.amount) || 0),
-      0
-    );
-    if (Number(amount).toFixed(2) !== totalSplit.toFixed(2)) {
-      setError("Split amounts do not match the total amount.");
-      return;
-    }
-    setError("");
+  // Validate split total
+  const totalSplit = Object.values(splitWith).reduce(
+    (sum, s) => sum + (Number(s.amount) || 0),
+    0
+  );
+  if (Number(amount).toFixed(2) !== totalSplit.toFixed(2)) {
+    setError("Split amounts do not match the total amount.");
+    setSuccess(""); // clear success if error occurs
+    return;
+  }
+  setError("");
 
     const expenseData = {
       title,
@@ -103,8 +105,9 @@ useEffect(() => {
       splitWith,
     };
 
-    onAddExpense(expenseData);
-
+    const result = await onAddExpense(expenseData);
+      if (!result?.error) {
+    setSuccess("Expense added successfully!");
     // reset form
     setTitle("");
     setAmount("");
@@ -116,11 +119,15 @@ useEffect(() => {
         return acc;
       }, {})
     );
-  };
+  } else {
+    setSuccess("");
+  }
+};
 
   return (
     <form onSubmit={handleSubmit}>
       {error && <div className="alert alert-danger">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
       <div className="mb-3">
         <label className="form-label">Title</label>

@@ -79,7 +79,8 @@ function App() {
       {/* Tab Content */}
       {activeTab === "summary" && <Summary expenses={expenses} />}
       {activeTab === "add" && <ExpenseForm onAddExpense={addExpenseHandler} />}
-      {activeTab === "list" && <ExpenseList expenses={expenses} />}
+      {activeTab === "list" && (<ExpenseList items={expenses} setExpenses={setExpenses} />)}
+
     </div>
   );
 }
