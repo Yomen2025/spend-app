@@ -1,12 +1,15 @@
+// src/App.jsx
 import React, { useState, useEffect } from "react";
-import ExpenseForm from "./components/ExpenseForm";
-import ExpenseList from "./components/ExpenseList";
+import ExpenseForm from "./components/ExpenseForm.jsx";
+import ExpenseList from "./components/ExpenseList.jsx";
 import Summary from "./components/Summary.jsx";
+import AddPayment from "./components/AddPayment.jsx";
 import { supabase } from "./supabaseClient";
 
 function App() {
   const [activeTab, setActiveTab] = useState("summary");
-  const [expenses, setExpenses] = useState([]); // ✅ always an array
+  const [expenses, setExpenses] = useState([]);
+  const [payments, setPayments] = useState([]);
 
   // Fetch expenses from Supabase
   useEffect(() => {
@@ -26,18 +29,49 @@ function App() {
     fetchExpenses();
   }, []);
 
+  // Fetch payments from Supabase
+  useEffect(() => {
+    const fetchPayments = async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*")
+        .order("date", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching payments:", error);
+      } else {
+        setPayments(data);
+      }
+    };
+
+    fetchPayments();
+  }, []);
+
+  // Add expense
   const addExpenseHandler = async (expense) => {
-    // Save to Supabase
     const { data, error } = await supabase
       .from("expenses")
       .insert([expense])
-      .select(); // <-- this ensures the inserted row is returned
+      .select();
 
     if (error) {
       console.error("Error adding expense:", error);
     } else if (data && data.length > 0) {
-      // Update local state safely
       setExpenses((prev) => [...prev, data[0]]);
+    }
+  };
+
+  // Add payment
+  const addPaymentHandler = async (payment) => {
+    const { data, error } = await supabase
+      .from("payments")
+      .insert([payment])
+      .select();
+
+    if (error) {
+      console.error("Error adding payment:", error);
+    } else if (data && data.length > 0) {
+      setPayments((prev) => [...prev, data[0]]);
     }
   };
 
@@ -68,6 +102,14 @@ function App() {
         </li>
         <li className="nav-item">
           <button
+            className={`nav-link ${activeTab === "payment" ? "active" : ""}`}
+            onClick={() => setActiveTab("payment")}
+          >
+            Add Payment
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
             className={`nav-link ${activeTab === "list" ? "active" : ""}`}
             onClick={() => setActiveTab("list")}
           >
@@ -77,10 +119,16 @@ function App() {
       </ul>
 
       {/* Tab Content */}
-      {activeTab === "summary" && <Summary expenses={expenses} />}
+      {activeTab === "summary" && (
+        <Summary expenses={expenses} payments={payments} />
+      )}
       {activeTab === "add" && <ExpenseForm onAddExpense={addExpenseHandler} />}
-      {activeTab === "list" && (<ExpenseList items={expenses} setExpenses={setExpenses} />)}
-
+      {activeTab === "payment" && (
+        <AddPayment onAddPayment={addPaymentHandler} />
+      )}
+      {activeTab === "list" && (
+        <ExpenseList items={expenses} setExpenses={setExpenses} />
+      )}
     </div>
   );
 }
